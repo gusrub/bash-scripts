@@ -41,6 +41,9 @@ function do_removal {
 	for branch in "${branches_to_remove[@]}"; do
 		printf "\nDeleting branch '$branch' \n"
 
+		git push --delete origin $branch
+		git branch -d $branch
+		git remote prune origin
 
 		if [[ $? -ne 0 ]]; then
 			printf "\nThere was a problem removing the '$branch' branch"
