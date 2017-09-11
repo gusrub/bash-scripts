@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Set some defaults
+remote_path="/"
+identity="~/.ssh/id_rsa"
+
+function print_options {
+	echo "e.g."
+	echo "mount-remote-ssh user@example.com MyRemote [/home/user/.ssh/id_rsa]"
+}
+
+if ! [[ `which brew` ]]; then
+	echo "Brew does not exist, please install it first"
+	exit 1
+fi
+
+if ! [[ `which sshfs` ]]; then
+	echo "sshfs does not exist, please install it first with 'brew install osxfuse' and 'brew install sshfs' "
+	exit 1
+fi
+
+if [[ $1 == '' ]]; then
+	echo "Error: need to give a remote host!"
+	print_options
+	exit 1
+else
+	remote_host=$1
+fi
+
+if [[ $2 == '' ]]; then
+	echo "Error: need to give a volume name!"
+	print_options
+	exit 1
+else
+	volume=$2
+fi
+
+if [[ $3 != '' ]]; then
+	$identity=$3
+fi
+
+
+
+
+# give your drive a nice name and location
+if ! [[ -d "/Volumes/$volume/" ]]; then
+	mkdir "/Volumes/$volume/"
+fi
+
+
+#mount it
+sshfs -o reconnect -o volname="$volume" -o IdentityFile="$identity" $remote_host:$remote_path "/Volumes/$volume"
+

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+while getopts ":h:u:w:d:p:" opt; do
+  case $opt in
+    h) DB_HOST="$OPTARG"
+    ;;
+    u) DB_USER="$OPTARG"
+    ;;
+    w) DB_PASSWORD="$OPTARG"
+    ;;
+    d) DB_NAME="$OPTARG"
+    ;;
+    p) DB_PATH="$OPTARG"
+    ;;
+    \?) echo "Invalid option -$OPTARG" >&2
+    ;;
+  esac
+done
+
+if [[ -z $DB_HOST ]]; then
+    echo "Need to provide db host with -h option"
+elif [[ -z $DB_USER ]]; then
+    echo "Need to provide db user with -u option"
+elif [[ -z $DB_PASSWORD ]]; then
+    echo "Need to provide db password with -w option"
+elif [[ -z $DB_NAME ]]; then
+    echo "Need to provide db name with -d option"
+elif [[ -z $DB_PATH ]]; then
+    echo "Need to provide db path with -p option"
+else
+    OK=1
+fi
+
+if [[ $OK -eq 1 ]]; then
+    FILENAME=${DB_PATH%/}/$DB_NAME-`(date +"%Y%m%d%H%m%s")`.sql
+    mysqldump --host=$DB_HOST --user=$DB_USER --password=$DB_PASSWORD --add-drop-database $DB_NAME > $FILENAME
+
+    if [[ $? -eq 0 ]]; then
+        echo "Successfully exported $FILENAME"
+    else
+        echo "Did not exported the DB, sorry"
+        exit 1
+    fi
+else
+    exit 1
+fi
+
