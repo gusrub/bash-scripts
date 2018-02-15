@@ -1,0 +1,89 @@
+#!/bin/bash
+
+DEV_BRANCH="dev"
+CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
+CURRENT_STATUS=`git status --porcelain`
+GIT_CHECKOUT_DEV_CMD="git checkout $DEV_BRANCH"
+GIT_CHECKOUT_CURRENT_CMD="git checkout $CURRENT_BRANCH"
+GIT_PULL_DEV_CMD="git pull origin $DEV_BRANCH"
+GIT_PULL_CURRENT_CMD="git pull origin $CURRENT_BRANCH"
+GIT_MERGE_CMD="git merge --no-edit $DEV_BRANCH"
+PATCH_NAME="`echo $CURRENT_BRANCH | sed 's/\//_/'`.diff"
+GIT_DIFF_CMD="git diff $DEV_BRANCH > $PATCH_NAME"
+GIT_RESET_HEAD_CMD="git reset --hard origin/$DEV_BRANCH"
+GIT_APPLY_PATCH_CMD="git apply $PATCH_NAME"
+GIT_ADD_CMD="git add .; git reset -- $PATCH_NAME"
+GIT_COMMIT_CMD="git commit"
+CLEANUP_CMD="rm $PATCH_NAME"
+
+BOLD_TEXT="\033[1m"
+NORMAL_TEXT="\033[0m"
+YELLOW_COLOR="\033[93m"
+RED_COLOR="\033[91m"
+BLUE_COLOR="\033[34m"
+GREEN_COLOR="\033[32m"
+NORMAL_COLOR="\033[39m"
+
+function check_status {
+	if [[ ! -z $CURRENT_STATUS ]]; then
+		echo -e "Your local branch ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} is not clean, commit/discard your changes and try again"
+		exit 1
+	elif [[ $CURRENT_BRANCH == $DEV_BRANCH ]]; then
+		echo -e "You are on the ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} branch. Change to a feature branch for this script to work."
+		exit 1
+	fi
+
+}
+
+function do_squash {
+	echo -e "Pulling latest from ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
+	execute_action "$GIT_PULL_CURRENT_CMD"
+
+	echo -e "Checking out ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
+	execute_action "$GIT_CHECKOUT_DEV_CMD"
+
+	echo -e "Getting latest code from ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
+	execute_action "$GIT_PULL_DEV_CMD"
+
+	echo -e "Going back to ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
+	execute_action "$GIT_CHECKOUT_CURRENT_CMD"
+
+	echo -e "Merging ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} into ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} ..."
+	execute_action "$GIT_MERGE_CMD"
+
+	echo -e "Generating patch ${BOLD_TEXT}${GREEN_COLOR}'$PATCH_NAME'${NORMAL_TEXT}${NORMAL_COLOR} ..."
+	execute_action "$GIT_DIFF_CMD"
+
+	echo -e "Resetting the tip of ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} to the latest commit of ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} ..."
+	execute_action "$GIT_RESET_HEAD_CMD"
+
+	echo -e "Applying patch ${BOLD_TEXT}${GREEN_COLOR}'$PATCH_NAME'${NORMAL_TEXT}${NORMAL_COLOR} to ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}... "
+	execute_action "$GIT_APPLY_PATCH_CMD"
+
+	echo -e "Adding patches files to staging area..."
+	execute_action "$GIT_ADD_CMD"
+
+	echo -e "OK we are done, leave your message and save the file to commit the changes..."
+	execute_action "$GIT_COMMIT_CMD"
+
+	echo -e "Doing cleanup... removing patch file ${BOLD_TEXT}${GREEN_COLOR}'$PATCH_NAME'${NORMAL_TEXT}${NORMAL_COLOR} from folder"
+	execute_action "$CLEANUP_CMD"
+	exit 0
+
+}
+
+function execute_action {
+	action=$1
+	if [[ ! -z $action ]]; then
+		eval $action
+
+		if [ ! $? -eq 0 ]; then
+		    echo -e "Last command ${BOLD_TEXT}${RED_COLOR}'$action'${NORMAL_TEXT}${NORMAL_COLOR} failed, exiting."
+		    exit 1
+		fi
+	fi
+}
+
+# Call actual functions
+check_status
+do_squash
