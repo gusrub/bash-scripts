@@ -4,6 +4,7 @@ DEV_BRANCH="dev"
 CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
 CURRENT_STATUS=`git status --porcelain`
 GIT_CHECKOUT_DEV_CMD="git checkout $DEV_BRANCH"
+GIT_FIND_CURRENT_CMD=`git ls-remote --heads | grep -c $CURRENT_BRANCH`
 GIT_CHECKOUT_CURRENT_CMD="git checkout $CURRENT_BRANCH"
 GIT_PULL_DEV_CMD="git pull origin $DEV_BRANCH"
 GIT_PULL_CURRENT_CMD="git pull origin $CURRENT_BRANCH"
@@ -36,8 +37,13 @@ function check_status {
 }
 
 function do_squash {
-	echo -e "Pulling latest from ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
-	execute_action "$GIT_PULL_CURRENT_CMD"
+	echo -e "Checking if we have ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} on the remote..."
+	if [[ $GIT_FIND_CURRENT_CMD -eq 1 ]]; then
+		echo -e "Pulling latest from ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
+		execute_action "$GIT_PULL_CURRENT_CMD"
+	else
+		echo -e "Branch ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} is not pushed yet so no pull needed..."
+	fi
 
 	echo -e "Checking out ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR}..."
 	execute_action "$GIT_CHECKOUT_DEV_CMD"
