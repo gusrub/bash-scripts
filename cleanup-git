@@ -1,12 +1,29 @@
 #!/bin/bash
 
+#options
+MAIN_BRANCH="dev"
 LOCAL_ONLY=false
-if [[ "$1" == "--local-only" ]]; then
-	LOCAL_ONLY=true
-fi
+while getopts ":b:l" opt; do
+    case $opt in
+    b)
+        MAIN_BRANCH="$OPTARG" >&2
+        ;;
+    l)
+		LOCAL_ONLY=true >&2
+		;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+    esac
+done
 
 # Branches we don't want to remove
-keep_branches=("develop" "staging" "master" "development" "deploy")
+keep_branches=("dev" "develop" "staging" "master" "development" "deploy")
 branches_to_remove=()
 
 function safe_exit {
@@ -56,12 +73,12 @@ function do_removal {
 }
 
 current_branch=`git rev-parse --abbrev-ref HEAD`
-if [[ $current_branch != "master" ]]; then
-	exit_with_error "You need to have MASTER checked out to use this script"
+if [[ $current_branch != $MAIN_BRANCH ]]; then
+	exit_with_error "You need to have $MAIN_BRANCH checked out to use this script"
 else
-	# Get the latest from master so its on sync with the local
-	echo "Getting latest version for MASTER"
-	git pull origin master
+	# Get the latest from $MAIN_BRANCH so its on sync with the local
+	echo "Getting latest version for $MAIN_BRANCH"
+	git pull origin $MAIN_BRANCH
 
 	if [[ "$LOCAL_ONLY" = false ]]; then
 		# Fetch all remote branches so we can remove those which are in sync too

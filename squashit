@@ -1,6 +1,27 @@
 #!/bin/bash
 
+# Check if we are squashing against dev or other base
 DEV_BRANCH="dev"
+DIFF_INDEX=""
+while getopts ":b:" opt; do
+    case $opt in
+    b)
+        DEV_BRANCH="$OPTARG" >&2
+        ;;
+    i)
+		DIFF_INDEX="$OPTARG" >&2
+		;;
+    \?)
+        echo "Invalid option: -$OPTARG" >&2
+        exit 1
+        ;;
+    :)
+        echo "Option -$OPTARG requires an argument." >&2
+        exit 1
+        ;;
+    esac
+done
+
 CURRENT_BRANCH=`git rev-parse --abbrev-ref HEAD`
 CURRENT_STATUS=`git status --porcelain`
 GIT_CHECKOUT_DEV_CMD="git checkout $DEV_BRANCH"
@@ -10,7 +31,14 @@ GIT_PULL_DEV_CMD="git pull origin $DEV_BRANCH"
 GIT_PULL_CURRENT_CMD="git pull origin $CURRENT_BRANCH"
 GIT_MERGE_CMD="git merge --no-edit $DEV_BRANCH"
 PATCH_NAME="`echo $CURRENT_BRANCH | sed 's/\//_/'`.diff"
-GIT_DIFF_CMD="git diff $DEV_BRANCH > $PATCH_NAME"
+
+if [[ $DIFF_INDEX != "" ]]; then
+	GIT_DIFF_CMD="git diff-index $DIFF_INDEX --binary > $PATCH_NAME"
+else
+	GIT_DIFF_CMD="git diff $DEV_BRANCH > $PATCH_NAME"
+fi
+
+
 GIT_RESET_HEAD_CMD="git reset --hard origin/$DEV_BRANCH"
 GIT_APPLY_PATCH_CMD="git apply $PATCH_NAME"
 GIT_ADD_CMD="git add .; git reset -- $PATCH_NAME"
@@ -30,7 +58,7 @@ function check_status {
 		echo -e "Your local branch ${BOLD_TEXT}${YELLOW_COLOR}'$CURRENT_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} is not clean, commit/discard your changes and try again"
 		exit 1
 	elif [[ $CURRENT_BRANCH == $DEV_BRANCH ]]; then
-		echo -e "You are on the ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} branch. Change to a feature branch for this script to work."
+		echo -e "You are on the ${BOLD_TEXT}${BLUE_COLOR}'$DEV_BRANCH'${NORMAL_TEXT}${NORMAL_COLOR} branch. Change to a different feature branch for this script to work."
 		exit 1
 	fi
 
