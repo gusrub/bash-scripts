@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# SIMPLE FUNCTION TO SET TITLE
+if [[ -z "$@" ]]; then
+    echo -e "\nYou have to pass a title parameter, of course!\n"
+    exit 1
+fi
+
+PARAMS=$*
+while getopts ":c" opt; do
+    case ${opt} in
+    c)
+        PARAMS=""
+        ;;
+    \?)
+        echo -e "Invalid option: -$OPTARG" >&2
+        echo -e "\nTo set the title: \n\ttitle 'Window Title'"
+        echo -e "To clear current title: \n\ttitle [-c]\n"
+        exit 1
+        ;;
+    esac
+done
+
+if [[ -z $PARAMS ]]; then
+    echo -e "\nClearing current title...\n"
+fi
+
+echo -ne "\033]0;"$PARAMS"\007"
+exit 0
